@@ -105,15 +105,6 @@ public class MyAi implements Ai {
 		gameTreeNode winnerNode = rootNode.getChildWithMaxScore();
 		tree.setRoot(winnerNode);
 		System.out.println(winnerNode.getParent().getCard().getState().getAvailableMoves());
-//		Move winMove = null;
-////		for (Move m : moves) {
-////			Board.GameState tempState = initalCard.getState();
-////			Board.GameState newTemp = tempState.advance(m);
-////			if(newTemp == winnerNode.getCard().getState()) {
-////				winMove = m;
-////			}
-////		}
-////        assert winMove != null;
         return winnerNode.getCard().getMoveTo();
 	}
 }
