@@ -72,7 +72,9 @@ public class Card {
         var moves = state.getAvailableMoves().asList();
         ArrayList<Card> potCards = new ArrayList<>();
         for (Move m : moves) {
-            potCards.add(new Card(state.advance(m),m));
+            Card temp = new Card(state.advance(m),m);
+            temp.setPlayerNo(Math.abs(1-this.getPlayerNo()));
+            potCards.add(temp);
         }
         return potCards;
     }
@@ -84,7 +86,6 @@ public class Card {
 
     public void randomAdvance() {
         var moves = state.getAvailableMoves().asList();
-        Board.GameState nextState = state;
         if (isMrxTurn()) {
             this.state = state.advance(moves.get(new Random().nextInt(moves.size())));
         }
@@ -94,7 +95,7 @@ public class Card {
                 if (state.getWinner().isEmpty()) {
                     this.state = state.advance(moves.get(new Random().nextInt(moves.size())));
                 }
-                if (state.getWinner().isEmpty()) { moves = state.getAvailableMoves().asList(); }
+                moves = state.getAvailableMoves().asList();
             }
         }
     }

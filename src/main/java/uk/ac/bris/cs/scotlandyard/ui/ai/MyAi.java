@@ -9,6 +9,7 @@ import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
 public class MyAi implements Ai {
+	static final int WIN_SCORE = 10;
 
 	@Nonnull @Override public String name() { return "MCTS_MrxAi"; }
 
@@ -24,8 +25,8 @@ public class MyAi implements Ai {
 		List<Card> possibleCards = node.getCard().potentialCards();
 		possibleCards.forEach(Card -> {
 			gameTreeNode newNode = new gameTreeNode(Card,node);
-			if (node.getCard().isMrxTurn()) { newNode.getCard().setPlayerNo(1); }
-			else { newNode.getCard().setPlayerNo(0); }
+			newNode.getCard().setPlayerNo(Math.abs(1-node.getCard().getPlayerNo()));
+			System.out.println(Math.abs(1-node.getCard().getPlayerNo()));
 			node.addChild(newNode);
 		});
 	}
@@ -44,12 +45,14 @@ public class MyAi implements Ai {
 		gameTreeNode tempNode = new gameTreeNode(node.getCard(),node.getParent());
 		Card tempCard = tempNode.getCard();
 		if (!tempCard.getState().getWinner().contains(Piece.MrX.MRX) && !tempCard.getState().getWinner().isEmpty()) {
-			tempNode.getParent().getCard().setScore(Integer.MIN_VALUE);
+			tempNode.getParent().getCard().setScore(-1);
 			return 0;
 		}
 		while (tempCard.getState().getWinner().isEmpty()) {
+			tempCard.setPlayerNo(Math.abs(1-tempCard.getPlayerNo()));
 			tempCard.randomAdvance();
 		}
+		System.out.println(tempCard.getState().getWinner());
 		if (tempCard.getState().getWinner().contains(Piece.MrX.MRX)) {
 			return 1;
 		}
@@ -65,7 +68,7 @@ public class MyAi implements Ai {
 		var moves = board.getAvailableMoves().asList();
 		Board.GameState state = (Board.GameState) board;
 		Card initalCard = new Card(state,null);
-		initalCard.setPlayerNo(1);
+		initalCard.setPlayerNo(0);
 
 		List<Optional<Integer>> detLocs = new ArrayList<>();
 		for (Piece.Detective d : Piece.Detective.values()) {
@@ -84,7 +87,7 @@ public class MyAi implements Ai {
 		int maxI = scores.indexOf(Collections.max(scores));
 
 		long start = System.currentTimeMillis();
-		long end = start + 10 * 1000;
+		long end = start + 5 * 1000;
 
 		gameTreeNode rootNode =  new gameTreeNode(initalCard,null);
 		gameTree tree = new gameTree(rootNode);
@@ -104,7 +107,7 @@ public class MyAi implements Ai {
 
 		gameTreeNode winnerNode = rootNode.getChildWithMaxScore();
 		tree.setRoot(winnerNode);
-		System.out.println(winnerNode.getParent().getCard().getState().getAvailableMoves());
+		System.out.println(winnerNode.getCard().getScore() + " , " + winnerNode.getCard().getVisitCount());
         return winnerNode.getCard().getMoveTo();
 	}
 }
