@@ -56,13 +56,11 @@ public class gameTreeNode {
         double max = Integer.MIN_VALUE;
         gameTreeNode maxScoreChild = this.children.get(0);
         for (gameTreeNode c : this.children) {
-            System.out.println(c.getCard().getScore() + " , " + c.getCard().getVisitCount());
             if (c.getCard().getScore() > max) {
                 max = c.getCard().getScore();
                 maxScoreChild = c;
             }
         }
-        System.out.println("end of max");
         return maxScoreChild;
     }
 }

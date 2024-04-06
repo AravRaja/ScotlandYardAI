@@ -26,7 +26,6 @@ public class MyAi implements Ai {
 		possibleCards.forEach(Card -> {
 			gameTreeNode newNode = new gameTreeNode(Card,node);
 			newNode.getCard().setPlayerNo(Math.abs(1-node.getCard().getPlayerNo()));
-			System.out.println(Math.abs(1-node.getCard().getPlayerNo()));
 			node.addChild(newNode);
 		});
 	}
@@ -52,7 +51,6 @@ public class MyAi implements Ai {
 			tempCard.setPlayerNo(Math.abs(1-tempCard.getPlayerNo()));
 			tempCard.randomAdvance();
 		}
-		System.out.println(tempCard.getState().getWinner());
 		if (tempCard.getState().getWinner().contains(Piece.MrX.MRX)) {
 			return 1;
 		}
@@ -107,7 +105,6 @@ public class MyAi implements Ai {
 
 		gameTreeNode winnerNode = rootNode.getChildWithMaxScore();
 		tree.setRoot(winnerNode);
-		System.out.println(winnerNode.getCard().getScore() + " , " + winnerNode.getCard().getVisitCount());
         return winnerNode.getCard().getMoveTo();
 	}
 }
