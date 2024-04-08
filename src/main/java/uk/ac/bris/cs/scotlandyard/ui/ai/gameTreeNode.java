@@ -24,6 +24,8 @@ public class gameTreeNode {
         children.add(child);
     }
 
+    public void removeChild(gameTreeNode child) { children.remove(child); }
+
     public gameTreeNode getParent() {
         return parent;
     }
