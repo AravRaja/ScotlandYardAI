@@ -11,7 +11,7 @@ import uk.ac.bris.cs.scotlandyard.model.*;
 
 public class MyAi implements Ai {
 
-	int movesPicked = 0;
+	int movesPicked = -1;
 	Set<Integer> ferryNodes = ImmutableSet.of(157, 194, 115, 108);
 
 	List<Integer> detectiveLocations = new ArrayList<>();
@@ -93,7 +93,6 @@ public class MyAi implements Ai {
 					Boolean detClose = false;
 					for (Integer i : detectiveLocations) {
 						if (c.getState().getSetup().graph.adjacentNodes(m.source()).contains(i)) {
-							System.out.println("detective within one node");
 							detClose = true;
 							break;
 						}
@@ -108,7 +107,8 @@ public class MyAi implements Ai {
 	@Nonnull @Override public Move pickMove(
 			@Nonnull Board board,
 			Pair<Long, TimeUnit> timeoutPair) {
-		// returns a random move, replace with your own implementation
+
+		if (board.getMrXTravelLog().isEmpty()) { movesPicked = -1; }
 		movesPicked += 1;
 		var moves = board.getAvailableMoves().asList();
 		Board.GameState state = (Board.GameState) board;
@@ -132,7 +132,7 @@ public class MyAi implements Ai {
 		int maxI = scores.indexOf(Collections.max(scores));
 
 		long start = System.currentTimeMillis();
-		long softEnd = start + 5 * 1000;
+		long softEnd = start + 1 * 1000;
 		long hardEnd = start + 15 * 1000;
 
 		gameTreeNode rootNode =  new gameTreeNode(initalCard,null);
@@ -155,26 +155,6 @@ public class MyAi implements Ai {
 		tree.setRoot(winnerNode);
 
         Move winMove = winnerNode.getCard().getMoveTo();
-//		Move winMoveCopy = winMove;
-//		List<ScotlandYard.Ticket> winMoveTickets = new ArrayList<>();
-//		for (ScotlandYard.Ticket t : winMove.tickets()) {
-//			winMoveTickets.add(t);;
-//		}
-//		int changeCount = 0;
-//		while (winMoveTickets.contains(ScotlandYard.Ticket.SECRET)) { //filters ticket choice to prevent wasting secret tickets
-//			if(System.currentTimeMillis() > hardEnd) { return winMoveCopy; }
-//			if (ferryNodes.contains(winMove.source())) { break; } //exception is when a ferry can be used from his current position
-//			if (!allEdgeTaxiOnly(winMove.source(),state) || movesPicked < 2 || board.getSetup().moves.get(movesPicked)) { //prevents secret ticket use in first 2 moves, if all moves form current node to an adjacent node are taxi or if its on a surfacing move
-//				rootNode.removeChild(winnerNode);
-//				winMove = rootNode.getChildWithMaxScore().getCard().getMoveTo();
-//				winMoveTickets.clear();
-//				changeCount += 1;
-//				System.out.println(changeCount);
-//				for (ScotlandYard.Ticket t : winMove.tickets()) {
-//					winMoveTickets.add(t);
-//				}
-//			}
-//		}
 		return winMove;
 	}
 }
