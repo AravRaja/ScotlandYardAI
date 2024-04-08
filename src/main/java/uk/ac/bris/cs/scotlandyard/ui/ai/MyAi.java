@@ -84,12 +84,12 @@ public class MyAi implements Ai {
 			for (ScotlandYard.Ticket t : m.tickets()) {
 				if (t.equals(ScotlandYard.Ticket.SECRET)) {
 					if (!ferryNodes.contains(moveTo.source())) {
-						if (!allEdgeTaxiOnly(moveTo.source(), state) || movesPicked < 2 || state.getSetup().moves.get(movesPicked)) { //prevents secret ticket use in first 2 moves, if all moves form current node to an adjacent node are taxi or if its on a surfacing move
+						if (allEdgeTaxiOnly(moveTo.source(), state) || movesPicked < 2 || state.getSetup().moves.get(movesPicked)) { //prevents secret ticket use in first 2 moves, if all moves form current node to an adjacent node are taxi or if its on a surfacing move
 							copy.remove(c); //removes illegal secret moves to avoid unnecessary exploration
 						}
 					}
 				}
-				else if (t.equals(ScotlandYard.Ticket.DOUBLE)) {
+				else if (t.equals(ScotlandYard.Ticket.DOUBLE)) { //prevents use of double unless a detective is in an adjacent node
 					Boolean detClose = false;
 					for (Integer i : detectiveLocations) {
 						if (c.getState().getSetup().graph.adjacentNodes(m.source()).contains(i)) {
