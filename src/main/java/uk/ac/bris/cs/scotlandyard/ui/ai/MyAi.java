@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.graph.ImmutableValueGraph;
 import com.sun.source.tree.Tree;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
@@ -89,15 +90,25 @@ public class MyAi implements Ai {
 						}
 					}
 				}
-				else if (t.equals(ScotlandYard.Ticket.DOUBLE)) { //prevents use of double unless a detective is in an adjacent node
-					Boolean detClose = false;
+				else if (t.equals(ScotlandYard.Ticket.DOUBLE)) { //prevents use of double unless a detective is in an adjacent node to a move mrX can make
+					Boolean canBeCaught = false;
+					Boolean exit = false;
 					for (Integer i : detectiveLocations) {
+						if (exit == true) { break; }
 						if (c.getState().getSetup().graph.adjacentNodes(m.source()).contains(i)) {
-							detClose = true;
+							canBeCaught = true;
 							break;
 						}
+						for (Integer j : c.getState().getSetup().graph.adjacentNodes(i)) {
+							if (c.getState().getSetup().graph.adjacentNodes(m.source()).contains(j)) {
+								canBeCaught = true;
+								exit = true;
+							}
+						}
 					}
-					if (!detClose) { copy.remove(c); }
+					if (!canBeCaught) {
+						copy.remove(c);
+					}
 				}
 			}
 		}
@@ -138,7 +149,9 @@ public class MyAi implements Ai {
 		gameTreeNode rootNode =  new gameTreeNode(initalCard,null);
 		gameTree tree = new gameTree(rootNode);
 
-		while (System.currentTimeMillis() < softEnd) {
+		int pncount = 0;
+		while (System.currentTimeMillis() < softEnd || pncount < 1000) {
+			pncount += 1;
 			gameTreeNode promisingNode = selectPromisingNode(rootNode);
 			if (promisingNode.getCard().getState().getWinner().isEmpty()) {
 				expandNode(promisingNode);
