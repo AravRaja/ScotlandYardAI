@@ -24,8 +24,6 @@ public class gameTreeNode {
         children.add(child);
     }
 
-    public void removeChild(gameTreeNode child) { children.remove(child); }
-
     public gameTreeNode getParent() {
         return parent;
     }
@@ -40,10 +38,6 @@ public class gameTreeNode {
 
     public void setCard(Card card) {
         this.card = card;
-    }
-
-    public void setChildren(List<gameTreeNode> children) {
-        this.children = children;
     }
 
     public void setParent(gameTreeNode parent) {

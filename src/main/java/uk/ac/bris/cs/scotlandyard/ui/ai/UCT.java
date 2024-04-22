@@ -2,20 +2,18 @@ package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
-public class UCT {
-    public static double uctValue(
+public class UCT { // this code is taken from https://www.baeldung.com/java-monte-carlo-tree-search as it is a formula
+    public static double uctValue( //calculates UCT/UCB1 formula to pick a promising node in a monte carlo tree search
             int totalVisit, double nodeWinScore, int nodeVisit) {
         if (nodeVisit == 0) {
             return Integer.MAX_VALUE;
         }
-        return ((double) nodeWinScore / (double) nodeVisit)
-                + 1.41 * Math.sqrt(Math.log(totalVisit) / (double) nodeVisit);
+        return ( nodeWinScore / (double) nodeVisit) + 1.41 * Math.sqrt(Math.log(totalVisit) / (double) nodeVisit);
     }
 
-    public static gameTreeNode findBestNodeWithUCT(gameTreeNode node) {
+    public static gameTreeNode findBestNodeWithUCT(gameTreeNode node) { //gets max UCT value
         int parentVisit = node.getCard().getVisitCount();
         List<Double> values = new ArrayList<>();
         for (gameTreeNode c : node.getChildren()) {

@@ -14,11 +14,4 @@ public class gameTree {
 
         this.root = root;
     }
-    public static gameTreeNode getRoot() {
-        return root;
-    }
-
-    public void setRoot(gameTreeNode root) {
-        this.root = root;
-    }
 }
