@@ -4,12 +4,20 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.graph.ImmutableValueGraph;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
 
-public class MyAi implements Ai {
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.IntStream;
 
+import com.google.common.io.Resources;
+import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
+
+public class MyAi implements Ai {
 	int movesPicked = 0;
 	Set<Integer> ferryNodes = ImmutableSet.of(157, 194, 115, 108);
 
@@ -17,8 +25,19 @@ public class MyAi implements Ai {
 
 	List<Optional<Board.TicketBoard>> detectiveTickets = new ArrayList<Optional<Board.TicketBoard>>();
 
+	ArrayList<ArrayList<Float>> lookupTable;
+
+	DetectiveAi detectiveAi;
+
 
 	@Nonnull @Override public String name() { return "MCTS_MrxAi"; }
+	@Override
+	public void onStart() {
+		LookupTable lt = new LookupTable();
+		this.lookupTable = lt.create(2F,3F,4F);
+		this.detectiveAi = new DetectiveAi();
+		detectiveAi.lookupTable = lt.create(2F,4F, 5.4F );
+	}
 
 	public static class Destination implements Move.Visitor<Integer> {
 
@@ -46,10 +65,15 @@ public class MyAi implements Ai {
 
 	private void expandNode(gameTreeNode node) { //adds children to a given node from the possible next moves (filters out double moves and secret moves dependant)
 		List<Card> possibleCards = node.getCard().potentialCards();
-		possibleCards = filterCards(possibleCards);
-		possibleCards.forEach(Card -> {
+		int player;
+		if (node.getCard().isMrxTurn()) { //dont want to filter detectives moves too
+			possibleCards = filterCards(possibleCards);
+			player = 1;
+		}
+		else { player = 0; }
+        possibleCards.forEach(Card -> {
 			gameTreeNode newNode = new gameTreeNode(Card,node);
-			newNode.getCard().setPlayerNo(Math.abs(1-node.getCard().getPlayerNo()));
+			newNode.getCard().setPlayerNo(player);
 			node.addChild(newNode);
 		});
 	}
@@ -59,7 +83,9 @@ public class MyAi implements Ai {
 		while (tempNode != null) {
 			tempNode.getCard().incrementVisit();
 			if (tempNode.getCard().getPlayerNo() == playerNo) {
-				tempNode.getCard().addScore(1);
+				if (tempNode.getCard().getScore() != -1) {
+					tempNode.getCard().addScore(1);
+				}
 			}
 			tempNode = tempNode.getParent();
 		}
@@ -77,9 +103,9 @@ public class MyAi implements Ai {
 			if (tempCard.isMrxTurn()) { e = 10; } //implements an e-greedy optimisation which instead of a random move being chosen a move is picked based on a heuristic with probability e
 			else { e = 5; } //for mrx e-greedy should happen 1/10 times and for detectives 1/5
 			Random rand = new Random();
-			for (int i = 0; i < detectiveLocations.size(); i++) {
-				if (1 == rand.nextInt(0,e)) { //does e-greedy for every single move (not all detectives or mrx but each detective or mrx)
-					tempCard.calculatedAdvance(timeoutPair, detectiveLocations);
+			while (!tempCard.isMrxTurn() || e == 10){
+				if (1 == rand.nextInt(0,e)) { //does e-greedy for every single move (not all detectives or mrx but each of all detectives and mrx)
+					tempCard.calculatedAdvance(timeoutPair, detectiveLocations,lookupTable,detectiveAi);
 				}
 				else {
 					tempCard.randomAdvance();
@@ -112,19 +138,13 @@ public class MyAi implements Ai {
 		Board.GameState state = cards.get(0).getState();
 		Move moveTo = cards.get(0).getMoveTo();
 		Destination dest = new Destination();
-		boolean canBeCaught = false;
-		boolean exit = false;
-		for (Integer i : detectiveLocations) { //calculates if mrX "canBeCaught" (which decides if double moves should be removed or not) i.e. he can move to a square that is an adjacent node to a detective - done prior to iterating through potential moves to save time
-			if (i == null) { continue; }
-			if (exit) { break; }
-			for (Integer j : state.getSetup().graph.adjacentNodes(i)) {
-				if (exit) { break; }
-				if (state.getSetup().graph.adjacentNodes(moveTo.source()).contains(j)) {
-					canBeCaught = true;
-					exit = true;
-				}
-			}
+		boolean canBeCaught;
+		boolean exit;
+		List<Integer> detectivePossibleMoves = new ArrayList<>();
+		for (Integer i : detectiveLocations) {
+            detectivePossibleMoves.addAll(state.getSetup().graph.adjacentNodes(i));
 		}
+		canBeCaught = new HashSet<>(detectivePossibleMoves).containsAll(state.getSetup().graph.adjacentNodes(moveTo.source())); //checks if all the adjacent nodes to mr x are contained in the adjacent nodes of all the detectives
 		for (Card c : cards) {
 			Move m = c.getMoveTo();
 			if (copy.size() > 1) { // will remove moves if another move is still available
@@ -153,7 +173,9 @@ public class MyAi implements Ai {
 					}
 				}
 				else if (t.equals(ScotlandYard.Ticket.DOUBLE)) { //prevents use of double unless a detective is in an adjacent node to a move mrX can make
-					if (!canBeCaught) { copy.remove(c); }
+					if (!canBeCaught || movesPicked < 3 ) {
+						copy.remove(c);
+					}
 				}
 			}
 		}
@@ -178,7 +200,7 @@ public class MyAi implements Ai {
 
 
 		long start = System.currentTimeMillis();
-		long end = start + 15 * 1000; //allows us to time how many random playouts are calculated so pickMove doesn't time out in the game
+		long end = start + 10 * 1000; //allows us to time how many random playouts are calculated so pickMove doesn't time out in the game
 		gameTreeNode rootNode =  new gameTreeNode(initalCard,null);
 
 		int pncount = 0;
@@ -195,12 +217,11 @@ public class MyAi implements Ai {
 			int playoutResult = simulateRandomPlayout(nodeToExplore, timeoutPair);
 			backPropagation(nodeToExplore, playoutResult);
 		}
-//		System.out.println(pncount + " : " + (end - System.currentTimeMillis()));
+		System.out.println(pncount + " : " + (end - System.currentTimeMillis()));
 
 		gameTreeNode winnerNode = rootNode.getChildWithMaxScore();
 
-//		System.out.println(winnerNode.getCard().getScore());
-//		System.out.println(rootNode.getChildren().size());
+		System.out.println(winnerNode.getCard().getScore());
 
 		movesPicked += 1;
 

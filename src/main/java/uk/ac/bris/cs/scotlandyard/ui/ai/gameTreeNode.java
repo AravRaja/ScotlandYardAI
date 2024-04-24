@@ -1,6 +1,7 @@
 package uk.ac.bris.cs.scotlandyard.ui.ai;
 
 import uk.ac.bris.cs.scotlandyard.model.Move;
+import uk.ac.bris.cs.scotlandyard.model.ScotlandYard;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,6 +53,11 @@ public class gameTreeNode {
         double max = Integer.MIN_VALUE;
         gameTreeNode maxScoreChild = this.children.get(0);
         for (gameTreeNode c : this.children) {
+            for (ScotlandYard.Ticket t : c.getCard().getMoveTo().tickets()) { //make secret moves more desirable as a choice of move
+                if (t.equals(ScotlandYard.Ticket.SECRET) && c.getCard().getScore() < 6000) {
+                    c.getCard().setScore(c.getCard().getScore()*1.25);
+                }
+            }
             if (c.getCard().getScore() > max) {
                 max = c.getCard().getScore();
                 maxScoreChild = c;

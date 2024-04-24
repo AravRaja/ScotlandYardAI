@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.graph.ImmutableValueGraph;
 import com.sun.source.tree.Tree;
 import io.atlassian.fugue.Pair;
 import uk.ac.bris.cs.scotlandyard.model.*;
@@ -19,10 +20,24 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.atlassian.fugue.Pair;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.stream.IntStream;
+
+import com.google.common.io.Resources;
+import static uk.ac.bris.cs.scotlandyard.model.ScotlandYard.readGraph;
+
 
 public class DetectiveAi implements Ai{
-    @Nonnull @Override public String name() {
-        return "Henry"; }
+
+    ArrayList<ArrayList<Float>> lookupTable;
+    @Nonnull @Override public String name() { return "Henry"; }
+
+    @Override
+    public void onStart() {
+        LookupTable lc = new LookupTable();
+        this.lookupTable = lc.create(2F,4F,5.4F);
+    }
 
     public Piece getCurrentPiece(ImmutableSet<Move> availableMoves){
         if(availableMoves.isEmpty()){throw new RuntimeException("No available moves for detectives");}
@@ -161,64 +176,6 @@ public class DetectiveAi implements Ai{
             return xLocations;
         }
     }
-
-    public ArrayList<Float> dijkstraShortestPath(Integer root, ImmutableList<Float> weights, GameSetup setup){
-        ArrayList<Float> distances = new ArrayList<Float>();
-        ArrayList<Boolean> visitedList = new ArrayList<>();
-        Integer currentNode = root;
-        ArrayList<Float> calcWeights = new ArrayList<Float>();
-        Float infinity = 100000F;
-
-        for (int i = 1; i <= 199; i++) {
-            if (i == root){
-                distances.add(0F);
-
-            }
-            else {
-                distances.add(infinity);
-            }
-            visitedList.add(false);
-        }
-        ArrayList<Float> unvisitedDistances = (ArrayList<Float>) distances.clone();
-        float newDistance = 0F;
-
-        while (visitedList.contains(false)) {
-
-            for (Integer node : setup.graph.adjacentNodes(currentNode)) {
-                if (!visitedList.get(node - 1)) {
-                    for (ScotlandYard.Transport t : setup.graph.edgeValueOrDefault(currentNode, node, ImmutableSet.of())) {
-                        if (t.requiredTicket().equals(ScotlandYard.Ticket.TAXI)) {
-                            calcWeights.add(weights.get(0));
-                        } else if (t.requiredTicket().equals(ScotlandYard.Ticket.BUS)) {
-                            calcWeights.add(weights.get(1));
-                        } else if (t.requiredTicket().equals(ScotlandYard.Ticket.UNDERGROUND)) {
-                            calcWeights.add(weights.get(2));
-                        }
-                        else{ calcWeights.add(infinity);}
-                    }
-                    newDistance = Collections.min(calcWeights) + distances.get(currentNode - 1);
-
-                    if (newDistance < distances.get(node - 1)) {
-                        distances.remove(node - 1);
-                        distances.add(node - 1, newDistance);
-                        unvisitedDistances.remove(node - 1);
-                        unvisitedDistances.add(node - 1, newDistance);
-                    }
-                    newDistance = 0;
-                    calcWeights.clear();
-                }
-            }
-
-            visitedList.remove(currentNode - 1);
-            visitedList.add(currentNode - 1, true);
-            unvisitedDistances.remove(currentNode - 1);
-            unvisitedDistances.add(currentNode - 1, infinity);
-            currentNode = unvisitedDistances.indexOf(Collections.min(unvisitedDistances)) + 1;
-        }
-
-        return distances;
-
-    }
     public static class LocationUpdate implements Move.Visitor<Integer> {
 
         @Override
@@ -242,17 +199,15 @@ public class DetectiveAi implements Ai{
         ImmutableList<Float> ticketWeights = getWeights(playerTickets, 1.5F, 5F,7F);
         ImmutableList<Float> ticketWeights2 = ImmutableList.of(2F,6F, 7F);
         Move move = null;
-        ArrayList<Float> shortestPath = null;
         Float score = 0F;
         Float prevScore = 10000000F;
         LocationUpdate lc = new LocationUpdate();
 
         for(Move m: playerMoves){
 
-            shortestPath = dijkstraShortestPath(m.accept(lc),  ticketWeights, board.getSetup());
 
             for(Integer location: mrXLocations){
-                score += shortestPath.get(location-1);
+                score += lookupTable.get(m.accept(lc)-1).get(location-1);
             }
 
             if(score < prevScore){

@@ -10,7 +10,7 @@ public class UCT { // this code is taken from https://www.baeldung.com/java-mont
         if (nodeVisit == 0) {
             return Integer.MAX_VALUE;
         }
-        return ( nodeWinScore / (double) nodeVisit) + 1.41 * Math.sqrt(Math.log(totalVisit) / (double) nodeVisit);
+        return ( nodeWinScore / (double) nodeVisit) + 1.1 * Math.sqrt(Math.log(totalVisit) / (double) nodeVisit);
     }
 
     public static gameTreeNode findBestNodeWithUCT(gameTreeNode node) { //gets max UCT value
