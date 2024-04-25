@@ -147,13 +147,17 @@ public class MyAi implements Ai {
 		canBeCaught = new HashSet<>(detectivePossibleMoves).containsAll(state.getSetup().graph.adjacentNodes(moveTo.source())); //checks if all the adjacent nodes to mr x are contained in the adjacent nodes of all the detectives
 		for (Card c : cards) {
 			Move m = c.getMoveTo();
-			if (copy.size() > 1) { // will remove moves if another move is still available
+			if (copy.size() > 1) { // will remove moves if another move is still available (don't filter every available move)
 				int destination = m.accept(dest);
 				int detNo = 0;
 				exit = false;
 				for (Integer i : detectiveLocations) { //calculates if the potential move is to a square that a detective has a ticket to move into
-					if (i == null) { continue; }
-					if (exit) { break; }
+					if (i == null) {
+						continue;
+					}
+					if (exit) {
+						break;
+					}
 					for (Integer j : state.getSetup().graph.adjacentNodes(i)) {
 						if (destination == j && detectiveTickets.get(detNo).get().getCount(state.getSetup().graph.edgeValueOrDefault(destination, i, null).asList().get(0).requiredTicket()) >= 1) {
 							copy.remove(c);
@@ -163,18 +167,17 @@ public class MyAi implements Ai {
 					}
 					detNo += 1;
 				}
-			}
-			for (ScotlandYard.Ticket t : m.tickets()) {
-				if (t.equals(ScotlandYard.Ticket.SECRET)) {
-					if (!ferryNodes.contains(moveTo.source())) { //ignores filtering of secret moves if a ferry cna be taken
-						if (allEdgeTaxiOnly(moveTo.source(), state) || movesPicked < 2 || state.getSetup().moves.get(movesPicked)) { //prevents secret ticket use in first 2 moves, if all moves form current node to an adjacent node are taxi or if its on a surfacing move
-							copy.remove(c); //removes illegal secret moves to avoid unnecessary exploration
+				for (ScotlandYard.Ticket t : m.tickets()) {
+					if (t.equals(ScotlandYard.Ticket.SECRET)) {
+						if (!ferryNodes.contains(moveTo.source())) { //ignores filtering of secret moves if a ferry cna be taken
+							if (allEdgeTaxiOnly(moveTo.source(), state) || movesPicked < 2 || state.getSetup().moves.get(movesPicked)) { //prevents secret ticket use in first 2 moves, if all moves form current node to an adjacent node are taxi or if its on a surfacing move
+								copy.remove(c); //removes illegal secret moves to avoid unnecessary exploration
+							}
 						}
-					}
-				}
-				else if (t.equals(ScotlandYard.Ticket.DOUBLE)) { //prevents use of double unless a detective is in an adjacent node to a move mrX can make
-					if (!canBeCaught || movesPicked < 3 ) {
-						copy.remove(c);
+					} else if (t.equals(ScotlandYard.Ticket.DOUBLE)) { //prevents use of double unless a detective is in an adjacent node to a move mrX can make
+						if (!canBeCaught) {
+							copy.remove(c);
+						}
 					}
 				}
 			}
@@ -203,9 +206,9 @@ public class MyAi implements Ai {
 		long end = start + 10 * 1000; //allows us to time how many random playouts are calculated so pickMove doesn't time out in the game
 		gameTreeNode rootNode =  new gameTreeNode(initalCard,null);
 
-		int pncount = 0;
-		while (System.currentTimeMillis() < end && pncount < 10000) { //main loop for calculating the scores or each move, set to stop if enough iterations or a time restriction is met
-			pncount += 1;
+		int iterations = 0;
+		while (System.currentTimeMillis() < end && iterations < 10000) { //main loop for calculating the scores or each move, set to stop if enough iterations or a time restriction is met
+			iterations += 1;
 			gameTreeNode promisingNode = selectPromisingNode(rootNode);
 			if (promisingNode.getCard().getState().getWinner().isEmpty()) {
 				expandNode(promisingNode);
@@ -217,11 +220,11 @@ public class MyAi implements Ai {
 			int playoutResult = simulateRandomPlayout(nodeToExplore, timeoutPair);
 			backPropagation(nodeToExplore, playoutResult);
 		}
-		System.out.println(pncount + " : " + (end - System.currentTimeMillis()));
+//		System.out.println(iterations + " : " + (end - System.currentTimeMillis()));
 
 		gameTreeNode winnerNode = rootNode.getChildWithMaxScore();
 
-		System.out.println(winnerNode.getCard().getScore());
+//		System.out.println(winnerNode.getCard().getScore());
 
 		movesPicked += 1;
 
